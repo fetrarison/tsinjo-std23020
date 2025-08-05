@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajouter une Tsinjo</title>
+</head>
+<body>
+<h1>Formulaire Tsinjo</h1>
+
+<form th:action="@{/tsinjo}" method="post" th:object="${tsinjo}">
+    <label for="matricule">Matricule:</label>
+    <input type="text" id="matricule" th:field="*{matricule}" required>
+    <br><br>
+
+    <label for="nom">Nom:</label>
+    <input type="text" id="nom" th:field="*{nom}" required>
+    <br><br>
+
+    <label for="prenom">Prénom:</label>
+    <input type="text" id="prenom" th:field="*{prenom}" required>
+    <br><br>
+
+    <label for="classe">Classe:</label>
+    <input type="text" id="classe" th:field="*{classe}" required>
+    <br><br>
+
+    <label for="presence">Présence:</label>
+    <input type="checkbox" id="presence" th:field="*{presence}">
+    <br><br>
+
+    <button type="submit">Ajouter</button>
+</form>
+
+<hr>
+
+<h2>Liste des Tsinjo</h2>
+<table>
+    <thead>
+    <tr>
+        <th>Matricule</th>
+        <th>Nom</th>
+        <th>Prénom</th>
+        <th>Classe</th>
+        <th>Présence</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="ts : ${liste}">
+        <td th:text="${ts.matricule}">Matricule</td>
+        <td th:text="${ts.nom}">Nom</td>
+        <td th:text="${ts.prenom}">Prenom</td>
+        <td th:text="${ts.classe}">Classe</td>
+        <td th:text="${ts.presence}">Présence</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
