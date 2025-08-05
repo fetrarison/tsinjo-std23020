@@ -1,61 +1,63 @@
-package com.examen.demo.controller;
+package com.examen.demo.endpoint.rest.controller.health;
 
-import com.examen.demo.datastructure.DonationDAO;
-import com.examen.demo.datastructure.HelpDAO;
+
+
+import com.examen.demo.datastructure.DonationDao;
+import com.examen.demo.datastructure.HelpDao;
 import com.examen.demo.*;
 import com.examen.demo.DonationDto;
 import com.examen.demo.VolaService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 
-@Slf4j
 @Controller
 @RequestMapping("/donations")
-@RequiredArgsConstructor
 public class DonationController {
 
-    private final DonationDAO donationDao;
-    private final HelpDAO helpDao;
+    private final DonationDao donationDao;
+    private final HelpDao helpDao;
     private final VolaService volaService;
 
+    public DonationController(DonationDao donationDao, HelpDao helpDao, VolaService volaService) {
+        this.donationDao = donationDao;
+        this.helpDao = helpDao;
+        this.volaService = volaService;
+    }
+
+    // Endpoint 1: Afficher la page avec formulaire et historique
     @GetMapping
-    public String getAllDonations(Model model) {
+    public String showPage(Model model) {
         try {
             model.addAttribute("donations", donationDao.findAllByOrderByPaymentDateDesc());
             model.addAttribute("helps", helpDao.findAllByOrderByPaymentDateDesc());
-            model.addAttribute("newDonation", new DonationDto());
-        } catch (SQLException e) {
-            log.error("Error fetching donations", e);
-            model.addAttribute("error", "Unable to fetch donations");
+            model.addAttribute("donationForm", new DonationDto());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return "index";
     }
 
+    // Endpoint 2: Traiter un nouveau don
     @PostMapping
-    public String createDonation(@ModelAttribute DonationDto donationDto, Model model) {
+    public String createDonation(@ModelAttribute DonationDto donationDto) {
         try {
-            // 1. Créer le paiement dans Vola
+            // 1. Créer le paiement
             String paymentId = volaService.createPayment(donationDto);
 
-            // 2. Créer les entités
-            Donor donor = Donor.builder()
-                    .email(donationDto.getEmail())
-                    .fullName(donationDto.getFullName())
-                    .build();
+            // 2. Préparer les entités
+            Donor donor = new Donor();
+            donor.setEmail(donationDto.getEmail());
+            donor.setFullName(donationDto.getFullName());
 
-            Payment payment = Payment.builder()
-                    .id(paymentId)
-                    .date(LocalDateTime.now())
-                    .amount(donationDto.getAmount())
-                    .method(donationDto.getPaymentMethod())
-                    .status(PaymentStatus.VERIFYING)
-                    .build();
+            Payment payment = new Payment();
+            payment.setId(paymentId);
+            payment.setDate(LocalDateTime.now());
+            payment.setAmount(donationDto.getAmount());
+            payment.setMethod(donationDto.getPaymentMethod());
+            payment.setStatus(PaymentStatus.VERIFYING);
 
             Donation donation = new Donation();
             donation.setDonor(donor);
@@ -64,28 +66,19 @@ public class DonationController {
             // 3. Sauvegarder
             donationDao.insert(donation);
 
-            // 4. Démarrer la vérification asynchrone
-            volaService.verifyPaymentStatus(paymentId, "/donations/payment-callback");
-
-            return "redirect:/donations";
+            // 4. Démarrer vérification asynchrone (simplifiée)
+            new Thread(() -> {
+                try {
+                    Thread.sleep(5000); // Simulation vérification
+                    donationDao.updatePaymentStatus(paymentId, PaymentStatus.SUCCEEDED);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
 
         } catch (Exception e) {
-            log.error("Error creating donation", e);
-            model.addAttribute("error", "Failed to process donation");
-            return getAllDonations(model);
+            e.printStackTrace();
         }
-    }
-
-    @PostMapping("/payment-callback")
-    @ResponseBody
-    public String paymentCallback(@RequestBody VolaPaymentStatusUpdate update) {
-        try {
-            // Mettre à jour le statut du paiement en base
-            donationDao.updatePaymentStatus(update.getPaymentId(), update.getStatus());
-            return "Callback processed";
-        } catch (SQLException e) {
-            log.error("Error processing payment callback", e);
-            return "Error processing callback";
-        }
+        return "redirect:/donations";
     }
 }

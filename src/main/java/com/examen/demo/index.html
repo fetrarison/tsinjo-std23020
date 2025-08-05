@@ -2,57 +2,77 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Ajouter une Tsinjo</title>
+    <title>Tsinjo - Fonds d'urgence HEI</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .donation-form { background: #f5f5f5; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+        .transaction-list { margin-top: 20px; }
+        .transaction { padding: 15px; border-bottom: 1px solid #eee; }
+        .donation { background-color: #e8f5e9; }
+        .help { background-color: #ffebee; }
+        .status-verifying { color: #fb8c00; }
+        .status-succeeded { color: #43a047; }
+        .status-failed { color: #e53935; }
+    </style>
 </head>
 <body>
-<h1>Formulaire Tsinjo</h1>
+<h1>Tsinjo - Fonds d'urgence HEI</h1>
 
-<form th:action="@{/tsinjo}" method="post" th:object="${tsinjo}">
-    <label for="matricule">Matricule:</label>
-    <input type="text" id="matricule" th:field="*{matricule}" required>
-    <br><br>
+<!-- Formulaire de don -->
+<div class="donation-form">
+    <h2>Faire un don</h2>
+    <form th:action="@{/donations}" th:object="${newDonation}" method="post">
+        <div>
+            <label>Nom complet:</label>
+            <input type="text" th:field="*{fullName}" required>
+        </div>
+        <div>
+            <label>Email:</label>
+            <input type="email" th:field="*{email}" required>
+        </div>
+        <div>
+            <label>Montant (MGA):</label>
+            <input type="number" th:field="*{amount}" min="1000" step="100" required>
+        </div>
+        <div>
+            <label>Moyen de paiement:</label>
+            <select th:field="*{paymentMethod}" required>
+                <option value="CARD">Carte bancaire</option>
+                <option value="MOBILE_MONEY">Mobile Money</option>
+                <option value="CASH">Espèces</option>
+            </select>
+        </div>
+        <button type="submit">Soumettre le don</button>
+    </form>
+</div>
 
-    <label for="nom">Nom:</label>
-    <input type="text" id="nom" th:field="*{nom}" required>
-    <br><br>
+<!-- Historique des transactions -->
+<div class="transaction-list">
+    <h2>Historique des transactions</h2>
 
-    <label for="prenom">Prénom:</label>
-    <input type="text" id="prenom" th:field="*{prenom}" required>
-    <br><br>
+    <!-- Dons -->
+    <div th:each="donation : ${donations}" class="transaction donation">
+        <h3>Don de <span th:text="${donation.donor.fullName}"></span></h3>
+        <p>Montant: <span th:text="${donation.payment.amount} + ' MGA'"></span></p>
+        <p>Méthode: <span th:text="${donation.payment.method}"></span></p>
+        <p>Date: <span th:text="${#temporals.format(donation.payment.date, 'dd/MM/yyyy HH:mm')}"></span></p>
+        <p>Statut:
+            <span th:classappend="'status-' + ${donation.payment.status.toString().toLowerCase()}"
+                  th:text="${donation.payment.status.description}"></span>
+        </p>
+    </div>
 
-    <label for="classe">Classe:</label>
-    <input type="text" id="classe" th:field="*{classe}" required>
-    <br><br>
-
-    <label for="presence">Présence:</label>
-    <input type="checkbox" id="presence" th:field="*{presence}">
-    <br><br>
-
-    <button type="submit">Ajouter</button>
-</form>
-
-<hr>
-
-<h2>Liste des Tsinjo</h2>
-<table>
-    <thead>
-    <tr>
-        <th>Matricule</th>
-        <th>Nom</th>
-        <th>Prénom</th>
-        <th>Classe</th>
-        <th>Présence</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="ts : ${liste}">
-        <td th:text="${ts.matricule}">Matricule</td>
-        <td th:text="${ts.nom}">Nom</td>
-        <td th:text="${ts.prenom}">Prenom</td>
-        <td th:text="${ts.classe}">Classe</td>
-        <td th:text="${ts.presence}">Présence</td>
-    </tr>
-    </tbody>
-</table>
+    <!-- Aides -->
+    <div th:each="help : ${helps}" class="transaction help">
+        <h3>Aide à <span th:text="${help.beneficiary.fullName}"></span></h3>
+        <p>Montant: <span th:text="${help.payment.amount} + ' MGA'"></span></p>
+        <p>Motif: <span th:text="${help.accidentDescription}"></span></p>
+        <p>Date: <span th:text="${#temporals.format(help.payment.date, 'dd/MM/yyyy HH:mm')}"></span></p>
+        <p>Statut:
+            <span th:classappend="'status-' + ${help.payment.status.toString().toLowerCase()}"
+                  th:text="${help.payment.status.description}"></span>
+        </p>
+    </div>
+</div>
 </body>
 </html>
